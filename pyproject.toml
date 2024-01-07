@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "nvd"
+version = "0.1.0"
+description = "A simple API client for the NIST National Vulnerability Database (NVD)"
+authors = ["Tyler Fisher <tylerfisher@tylerfisher.ca>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31.0"
+click = "^8.1.7"
+
+[tool.poetry.scripts]
+nvd = "nvd.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
