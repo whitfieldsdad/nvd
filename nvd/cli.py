@@ -1,7 +1,7 @@
-import sys
 from typing import Any, Iterator, Optional
 import click
 from nvd.client import Client
+import nvd.client as nvd
 import json
 import itertools
 import logging
@@ -73,8 +73,7 @@ def list_sources(output_file: Optional[str], limit: Optional[int]):
 @click.option('--output-file', '-o')
 @click.option('--vulnerable/--not-vulnerable', is_flag=True)
 def get_cve_to_cpe_map(cves_file: str, output_file: Optional[str], vulnerable: Optional[bool]):
-    client = Client()
-    mapping = client.get_cve_to_cpe_map(cves_file, vulnerable=vulnerable)
+    mapping = nvd.get_cve_to_cpe_map(cves_file, vulnerable=vulnerable)
     write_json_output(mapping, output_file=output_file)
 
 
@@ -83,10 +82,8 @@ def get_cve_to_cpe_map(cves_file: str, output_file: Optional[str], vulnerable: O
 @click.option('--output-file', '-o')
 @click.option('--vulnerable/--not-vulnerable', is_flag=True)
 def get_cpe_to_cve_map(cves_file: str, output_file: Optional[str], vulnerable: Optional[bool]):
-    client = Client()
-    mapping = client.get_cpe_to_cve_map(cves_file, vulnerable=vulnerable)
+    mapping = nvd.get_cpe_to_cve_map(cves_file, vulnerable=vulnerable)
     write_json_output(mapping, output_file=output_file)
-
 
 
 def write_json_output(data: Any, output_file: Optional[str]):
@@ -111,4 +108,4 @@ def write_jsonl_output(rows: Iterator[dict], output_file: Optional[str], limit: 
 
 
 if __name__ == "__main__":
-    pass
+    main()

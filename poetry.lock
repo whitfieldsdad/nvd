@@ -136,6 +136,17 @@ files = [
 ]
 
 [[package]]
+name = "cvss"
+version = "2.6"
+description = "CVSS2/3 library with interactive calculator for Python 2 and Python 3"
+optional = false
+python-versions = "*"
+files = [
+    {file = "cvss-2.6-py2.py3-none-any.whl", hash = "sha256:7006a025e1587f94fc7ce6bd2f3fa10b27a85d2f843d72d4346122779919c63b"},
+    {file = "cvss-2.6.tar.gz", hash = "sha256:1e8f0c7ac1c1d7f4fb6d901950aa216358809de25ee7c41bc138615a23936c80"},
+]
+
+[[package]]
 name = "idna"
 version = "3.6"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -144,6 +155,17 @@ python-versions = ">=3.5"
 files = [
     {file = "idna-3.6-py3-none-any.whl", hash = "sha256:c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f"},
     {file = "idna-3.6.tar.gz", hash = "sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca"},
+]
+
+[[package]]
+name = "inflection"
+version = "0.5.1"
+description = "A port of Ruby on Rails inflector to Python"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "inflection-0.5.1-py2.py3-none-any.whl", hash = "sha256:f38b2b640938a4f35ade69ac3d053042959b62a0f1076a5bbaa1b9526605a8a2"},
+    {file = "inflection-0.5.1.tar.gz", hash = "sha256:1a29730d366e996aaacffb2f1f1cb9593dc38e2ddd30c91250c6dde09ea9b417"},
 ]
 
 [[package]]
@@ -186,4 +208,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4a9fb08e31dcd623e22b077f5847a3d6eb09e88843e639470bf4e3d1216d6496"
+content-hash = "b21a9a2d1e8d134bbc932fb9cc7a97465611befead9e5f7ab4131fb2e76438e5"

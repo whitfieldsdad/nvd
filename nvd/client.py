@@ -1,10 +1,8 @@
-import collections
 from dataclasses import dataclass
-from nvd import files
 
 import os
 import time
-from typing import Dict, Iterator, List, Optional
+from typing import Iterator, Optional
 import requests
 import logging
 
@@ -72,37 +70,3 @@ class Client:
     def iter_sources(self) -> Iterator[dict]:
         url = 'https://services.nvd.nist.gov/rest/json/source/2.0'
         yield from self._iter_objects(url, 'sources')
-    
-    def get_cve_to_cpe_map(self, path_to_cves: str, vulnerable: bool = True) -> Dict[str, List[str]]:
-        return get_cve_to_cpe_map(path_to_cves, vulnerable=vulnerable)
-    
-    def get_cpe_to_cve_map(self, path_to_cves: str, vulnerable: bool = True) -> Dict[str, List[str]]:
-        return get_cpe_to_cve_map(path_to_cves, vulnerable=vulnerable)
-
-
-def get_cve_to_cpe_map(path_to_cves: str, vulnerable: bool = True) -> Dict[str, List[str]]:
-    mappings = collections.defaultdict(list)
-    for cve in files.read_jsonl_file(path_to_cves):
-        cve_id = cve['id']
-
-        for config in cve.get('configurations', []):
-            for node in config['nodes']:
-                for cpe in node['cpeMatch']:
-                    cpe_id = cpe['criteria']
-                    if vulnerable is not None and vulnerable != cpe['vulnerable']:
-                        continue
-                    
-                    if cpe_id not in mappings[cve_id]:
-                        mappings[cve_id].append(cpe_id)
-                        
-    return dict(mappings)
-
-
-def get_cpe_to_cve_map(path_to_cves: str, vulnerable: bool = True) -> Dict[str, List[str]]:
-    cve_to_cpe_mappings = get_cve_to_cpe_map(path_to_cves, vulnerable=vulnerable)
-    cpe_to_cve_mappings = collections.defaultdict(list)
-    for cve_id, cpe_ids in cve_to_cpe_mappings.items():
-        for cpe_id in cpe_ids:
-            cpe_to_cve_mappings[cpe_id].append(cve_id)
-    
-    return dict(cpe_to_cve_mappings)
