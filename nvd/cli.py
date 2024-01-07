@@ -68,24 +68,6 @@ def list_sources(output_file: Optional[str], limit: Optional[int]):
     write_jsonl_output(rows, output_file=output_file, limit=limit)
 
 
-@main.command('cve-to-cpe-map')
-@click.option('--cves-file', '-i', required=True)
-@click.option('--output-file', '-o')
-@click.option('--vulnerable/--not-vulnerable', is_flag=True)
-def get_cve_to_cpe_map(cves_file: str, output_file: Optional[str], vulnerable: Optional[bool]):
-    mapping = nvd.get_cve_to_cpe_map(cves_file, vulnerable=vulnerable)
-    write_json_output(mapping, output_file=output_file)
-
-
-@main.command('cpe-to-cve-map')
-@click.option('--cves-file', '-i', required=True)
-@click.option('--output-file', '-o')
-@click.option('--vulnerable/--not-vulnerable', is_flag=True)
-def get_cpe_to_cve_map(cves_file: str, output_file: Optional[str], vulnerable: Optional[bool]):
-    mapping = nvd.get_cpe_to_cve_map(cves_file, vulnerable=vulnerable)
-    write_json_output(mapping, output_file=output_file)
-
-
 def write_json_output(data: Any, output_file: Optional[str]):
     blob = json.dumps(data, indent=JSON_INDENT)
     if output_file:
