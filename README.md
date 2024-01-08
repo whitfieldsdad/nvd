@@ -8,6 +8,10 @@
 
 ### Command line interface
 
+The command line interface always returns data in JSONL format.
+
+The `-o` option can be used to write any output to a file or a directory.
+
 #### List all CVEs
 
 ```bash
