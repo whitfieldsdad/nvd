@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+import re
+
+_RE_SPLIT = re.compile(r'(?<!\\):')
 
 
 @dataclass()
@@ -27,11 +30,9 @@ class CPE:
 
 def parse(cpe: str) -> CPE:
     """
-    Decompose a CPE string into its components.
+    Decompose a CPE string into a Well Formed Name (WFN).
 
-    NOTE: this function only works for CPE version 2.3, and only supports ~99.81% of all CPEs in the NVD.
-
-    Example CPEs that can be successfully parsed:
+    Example CPEs:
 
     - cpe:2.3:o:microsoft:windows_10_1607:10.0.14393.5427:*:*:*:*:*:arm64:*
     - cpe:2.3:a:microsoft:internet_explorer:4.0.1:sp1:*:*:*:*:*:*
@@ -39,18 +40,25 @@ def parse(cpe: str) -> CPE:
     - cpe:2.3:o:microsoft:windows_nt:4.0:sp5:*:*:embedded:*:x86:*
     - cpe:2.3:a:zoom:zoom_plugin_for_microsoft_outlook:4.8.20547.0412:*:*:*:*:macos:*:*
 
-    Example failures:
+    Example decomposition:
 
-    - cpe:2.3:a:jenkins:pipeline\\:_groovy:2.23:*:*:*:*:jenkins:*:*
-    - cpe:2.3:a:gitlab\\:\\:api\\:\\:v4_project:gitlab\\:\\:api\\:\\:v4:0.26:*:*:*:*:*:*:*
-    - cpe:2.3:h:siemens:simatic_s7-1500_et_200pro\:_cpu_1513pro-2_pn:-:*:*:*:*:*:*:*
-    - cpe:2.3:o:lenovo:thinksmart_core_\&_controller_full_room_kit\:_microsoft_teams_rooms_firmware:-:*:*:*:*:*:*:*
-    - cpe:2.3:a:archive\:\:tar_project:archive\:\:tar:1.42:*:*:*:*:perl:*:*
+    >>> cpe = 'cpe:2.3:o:microsoft:windows_10_1607:10.0.14393.5427:*:*:*:*:*:arm64:*'
+    >>> result = parse(cpe)
+    >>> result
+    CPE(part='o', vendor='microsoft', product='windows_10_1607', version='10.0.14393.5427', update='*', edition='*', language='*', sw_edition='*', target_sw='*', target_hw='*', other='arm64:*')
+    >>>
+    >>> import dataclasses
+    >>> print(dataclasses.asdict(result))
+    {'part': 'o', 'vendor': 'microsoft', 'product': 'windows_10_1607', 'version': '10.0.14393.5427', 'update': '*', 'edition': '*', 'language': '*', 'sw_edition': '*', 'target_sw': '*', 'target_hw': 'arm64', 'other': '*'}
     """
-    parts = cpe.split(':')
+    parts = _RE_SPLIT.split(cpe)
+    if len(parts) != 13:
+        raise TypeError(f'Invalid CPE: {cpe}')
+
     prefix, version = parts[0], parts[1]
     if prefix != 'cpe':
         raise ValueError(f'Invalid CPE prefix: {prefix}')
     elif version != '2.3':
         raise ValueError(f'Unsupported CPE version: {version}')
+    
     return CPE(*parts[2:])
