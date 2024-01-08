@@ -186,6 +186,13 @@ class FeatureExtractor:
         cves = files.read_jsonl_file(self.path_to_cves_file)
         yield from filter_cves(cves, cve_ids=cve_ids, cpe_ids=cpe_ids)
 
+    def get_cve_ids_in_cisa_known_exploited_vulnerabilities_catalogue(self, cve_ids: Optional[Iterable[str]] = None, cpe_ids: Optional[Iterable[str]] = None) -> Iterator[dict]:
+        history = self.iter_cisa_kev_update_events(cve_ids=cve_ids, cpe_ids=cpe_ids)
+        return {line['cveId'] for line in history}
+
+    def iter_cisa_kev_update_events(self, cve_ids: Optional[Iterable[str]] = None, cpe_ids: Optional[Iterable[str]] = None) -> Iterator[dict]:
+        yield from self.iter_cve_change_history(event_types=[CVE_CISA_KEV_UPDATE], cve_ids=cve_ids, cpe_ids=cpe_ids)
+
     def iter_cve_change_history(
             self,
             event_types: Optional[Iterable[str]] = None,
