@@ -11,6 +11,9 @@ requests = "^2.31.0"
 click = "^8.1.7"
 cvss = "^2.6"
 inflection = "^0.5.1"
+beautifulsoup4 = "^4.12.2"
+tqdm = "^4.66.1"
+cpe = {git = "https://github.com/whitfieldsdad/cpe.git"}
 
 [tool.poetry.scripts]
 nvd = "nvd.cli:main"

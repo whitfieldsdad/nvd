@@ -1,5 +1,8 @@
+from cpe import CPE, CPESearch
+import cpe
 import collections
 from dataclasses import dataclass
+import datetime
 from typing import Dict, Iterable, Iterator, List, Optional
 from nvd import files
 from cvss import CVSS2, CVSS3
@@ -253,17 +256,67 @@ def filter_cves(
         cves: Iterable[dict],
         cve_ids: Optional[Iterable[str]] = None,
         cpe_ids: Optional[Iterable[str]] = None,
+        vendors: Optional[Iterable[str]] = None,
+        products: Optional[Iterable[str]] = None,
+        is_application_vulnerability: Optional[bool] = None,
+        is_hardware_vulnerability: Optional[bool] = None,
+        is_operating_system_vulnerability: Optional[bool] = None,
+        known_exploited: Optional[bool] = None,
         vulnerable: bool = True) -> Iterator[str]:
 
     if cve_ids:
         cve_ids = frozenset(cve_ids)
         cves = filter(lambda cve: cve['id'] in cve_ids, cves)
     
-    if cpe_ids:
-        cpe_ids = frozenset(cpe_ids)
-        cves = filter(lambda cve: bool(cpe_ids & set(extract_cpe_ids_from_cve(cve, vulnerable=vulnerable))), cves)
+    if known_exploited:
+        cves = filter(is_known_exploited, cves)
+    
+    if any((cpe_ids, vendors, products, is_application_vulnerability, is_hardware_vulnerability, is_operating_system_vulnerability)):
+        cves = _filter_cves_by_cpe(
+            cves,
+            cpe_ids=cpe_ids,
+            vendors=vendors,
+            products=products,
+            is_application_vulnerability=is_application_vulnerability,
+            is_hardware_vulnerability=is_hardware_vulnerability,
+            is_operating_system_vulnerability=is_operating_system_vulnerability,
+            vulnerable=vulnerable,
+        )
 
     yield from cves
+
+
+def _filter_cves_by_cpe(
+        cves: Iterable[dict], 
+        cpe_ids: Optional[Iterable[str]] = None,
+        vendors: Optional[Iterable[str]] = None,
+        products: Optional[Iterable[str]] = None,
+        is_application_vulnerability: Optional[bool] = None,
+        is_hardware_vulnerability: Optional[bool] = None,
+        is_operating_system_vulnerability: Optional[bool] = None,
+        vulnerable: Optional[bool] = None) -> Iterator[dict]:
+    
+    cpe_search = None
+    if any((vendors, products, is_application_vulnerability, is_hardware_vulnerability, is_operating_system_vulnerability)):
+        cpe_search = CPESearch(
+            vendors=vendors,
+            products=products,
+            is_application_vulnerability=is_application_vulnerability,
+            is_hardware_vulnerability=is_hardware_vulnerability,
+            is_operating_system_vulnerability=is_operating_system_vulnerability,
+        )
+    
+    for cve in cves:
+        found_cpe_ids = extract_cpe_ids_from_cve(cve, vulnerable=vulnerable)
+        if cpe_ids and not (cpe_ids & set(found_cpe_ids)):
+            continue
+
+        if cpe_search:
+            found_cpes = [cpe.parse(cpe_id) for cpe_id in found_cpe_ids]
+            if not cpe_search.matches_any(found_cpes):
+                continue
+
+        yield cve
 
 
 def extract_primary_cvss_metrics_from_cve(cve: dict) -> dict:
@@ -305,3 +358,50 @@ def extract_cpe_ids_from_cve(cve: dict, vulnerable: Optional[bool] = True) -> Li
                 if cpe_id not in cpe_ids:
                     cpe_ids.append(cpe_id)
     return cpe_ids
+
+
+def parse_cve(cve: dict) -> dict:
+    description = [d['value'] for d in cve['description']['description_data'] if d['lang'] == 'en']
+    description = description[0] if description else None
+    return {
+        'id': cve['id'],
+        'description': description,
+        'create_time': datetime.datetime.fromisoformat(cve['published']),
+        'update_time': datetime.datetime.fromisoformat(cve['lastModified']),
+        'status': cve.get('vulnStatus'),
+        'evaluator_impact': cve.get('evaluatorImpact'),
+    }
+
+
+def parse_cve_references(cve: dict) -> List[dict]:
+    refs = []
+    for o in cve['references']:
+        ref = {
+            'url': o['url'],
+            'source': o['source'],
+            'tags': o.get('tags'),
+        }
+        refs.append(ref)
+    return refs
+
+
+def is_known_exploited(cve: dict) -> bool:
+    return 'cisaExploitAdd' in cve
+
+
+def parse_cisa_kev_metadata(cve: dict) -> dict:
+    if 'cisaExploitAdd' in cve:
+        return {
+            'name': cve['cisaVulnerabilityName'],
+            'exploit_found_date': datetime.datetime.fromisoformat(cve['cisaExploitAdd']),
+            'due_date': datetime.datetime.fromisoformat(cve['cisaActionDue']),
+            'required_action': cve['cisaRequiredAction'],
+        }
+
+
+def parse_exploit_references(cve: dict) -> List[dict]:
+    refs = []
+    for ref in cve['references']:
+        if 'tags' in ref and 'Exploit' in ref['tags']:
+            refs.append(ref)
+    return refs
