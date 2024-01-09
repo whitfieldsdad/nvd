@@ -1,4 +1,4 @@
-from cpe import CPE, CPESearch
+from cpe import CPE, Filter
 import cpe
 import collections
 from dataclasses import dataclass
@@ -298,7 +298,7 @@ def _filter_cves_by_cpe(
     
     cpe_search = None
     if any((vendors, products, is_application_vulnerability, is_hardware_vulnerability, is_operating_system_vulnerability)):
-        cpe_search = CPESearch(
+        cpe_search = Filter(
             vendors=vendors,
             products=products,
             is_application_vulnerability=is_application_vulnerability,
@@ -311,10 +311,8 @@ def _filter_cves_by_cpe(
         if cpe_ids and not (cpe_ids & set(found_cpe_ids)):
             continue
 
-        if cpe_search:
-            found_cpes = [cpe.parse(cpe_id) for cpe_id in found_cpe_ids]
-            if not cpe_search.matches_any(found_cpes):
-                continue
+        if cpe_search and not cpe_search.matches_any(found_cpe_ids):
+            continue
 
         yield cve
 
