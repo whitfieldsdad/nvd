@@ -3,7 +3,7 @@ import cpe
 import collections
 from dataclasses import dataclass
 import datetime
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional, Set
 from nvd import files
 from cvss import CVSS2, CVSS3
 import inflection
@@ -371,6 +371,14 @@ def parse_cve(cve: dict) -> dict:
     }
 
 
+def iter_cve_references(cves: Iterable[dict]) -> Iterator[dict]:
+    for cve in cves:
+        cve_id = cve['id']
+        for ref in parse_cve_references(cve):
+            ref['cve_id'] = cve_id
+            yield ref
+
+
 def parse_cve_references(cve: dict) -> List[dict]:
     refs = []
     for o in cve['references']:
@@ -387,14 +395,32 @@ def is_known_exploited(cve: dict) -> bool:
     return 'cisaExploitAdd' in cve
 
 
+def iter_cisa_kev_metadata(cves: Iterable[dict]) -> Iterator[dict]:
+    for cve in cves:
+        metadata = parse_cisa_kev_metadata(cve)
+        if metadata:
+            metadata['cve_id'] = cve['id']
+            yield metadata
+
+
 def parse_cisa_kev_metadata(cve: dict) -> dict:
     if 'cisaExploitAdd' in cve:
+        exploit_found_date = datetime.date.fromisoformat(cve['cisaExploitAdd'])
+        due_date = datetime.date.fromisoformat(cve['cisaActionDue'])
         return {
             'name': cve['cisaVulnerabilityName'],
-            'exploit_found_date': datetime.datetime.fromisoformat(cve['cisaExploitAdd']),
-            'due_date': datetime.datetime.fromisoformat(cve['cisaActionDue']),
+            'exploit_found_date': exploit_found_date,
+            'action_due_date': due_date,
             'required_action': cve['cisaRequiredAction'],
         }
+
+
+def iter_exploit_references(cves: Iterable[dict]) -> Iterator[dict]:
+    for cve in cves:
+        cve_id = cve['id']
+        for ref in parse_exploit_references(cve):
+            ref['cve_id'] = cve_id
+            yield ref
 
 
 def parse_exploit_references(cve: dict) -> List[dict]:
@@ -403,3 +429,27 @@ def parse_exploit_references(cve: dict) -> List[dict]:
         if 'tags' in ref and 'Exploit' in ref['tags']:
             refs.append(ref)
     return refs
+
+
+def get_cve_to_cwe_mappings(cves: Iterable[dict]) -> dict:
+    m = collections.defaultdict(list)
+    for cve in cves:
+        cve_id = cve['id']
+        for cwe_id in parse_cwe_ids(cve):
+            if cwe_id not in m[cve_id]:
+                m[cve_id].append(cwe_id)
+    return dict(m)
+
+
+def parse_cwe_ids(cve: dict) -> List[str]:
+    cwe_ids = []
+    for weakness in cve.get('weaknesses', []):
+        for description in weakness['description']:
+            if description['lang'] == 'en':
+                cwe_id = description['value']
+                if cwe_id in ['NVD-CWE-noinfo', 'NVD-CWE-Other']:
+                    continue
+
+                if cwe_id not in cwe_ids:
+                    cwe_ids.append(cwe_id)
+    return cwe_ids
