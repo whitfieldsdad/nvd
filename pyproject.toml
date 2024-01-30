@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nvd"
-version = "0.1.0"
+version = "0.2.0"
 description = "A simple API client for the NIST National Vulnerability Database (NVD)"
 authors = ["Tyler Fisher <tylerfisher@tylerfisher.ca>"]
 readme = "README.md"
@@ -16,9 +16,12 @@ tqdm = "^4.66.1"
 cpe = {git = "https://github.com/whitfieldsdad/cpe.git"}
 stix2 = "^3.0.1"
 networkx = "^3.2.1"
+polars = "^0.20.6"
+pandas = "^2.2.0"
 
 [tool.poetry.scripts]
 nvd = "nvd.cli:main"
+tool = "nvd.cli:main"
 
 [build-system]
 requires = ["poetry-core"]

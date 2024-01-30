@@ -10,24 +10,91 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-JSON_INDENT = 4
-
 
 @click.group()
+@click.option('--workdir', '-w', default=nvd.WORKDIR)
 @click.option('--verbose', '-v')
-@click.option('--indent', type=int, default=JSON_INDENT)
-def main(verbose: bool, indent: int):
+@click.pass_context
+def main(ctx: click.Context, workdir: str, verbose: bool):
     """
     Client for NIST NVD API
     """
-    if verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(level=level)
 
-    if indent:
-        global JSON_INDENT
-        JSON_INDENT = indent
+    ctx.obj = Client(workdir=workdir)
+
+
+@main.group('query')
+def query():
+    """
+    Query data
+    """
+
+
+@query.command('cves')
+@click.option('--output-file', '-o')
+@click.option('--limit', type=int)
+@click.pass_context
+def list_cves(ctx: click.Context, output_file: Optional[str], limit: Optional[int]):
+    """
+    CVEs
+    """
+    client: Client = ctx.obj
+    rows = client.iter_cves()
+    write_jsonl_output(rows, output_file=output_file, limit=limit)
+
+
+@query.command('cve-changes')
+@click.option('--output-file', '-o')
+@click.option('--limit', type=int)
+@click.pass_context
+def list_cve_changes(ctx: click.Context, output_file: Optional[str], limit: Optional[int]):
+    """
+    Events related to CVEs
+    """
+    client: Client = ctx.obj
+    rows = client.iter_cve_change_history()
+    write_jsonl_output(rows, output_file=output_file, limit=limit)
+
+
+@query.command('cpes')
+@click.option('--output-file', '-o')
+@click.option('--limit', type=int)
+@click.pass_context
+def list_cpes(ctx: click.Context, output_file: Optional[str], limit: Optional[int]):
+    """
+    CPEs
+    """
+    client: Client = ctx.obj
+    rows = client.iter_cpes()
+    write_jsonl_output(rows, output_file=output_file, limit=limit)
+
+
+@query.command('cpe-match-criteria')
+@click.option('--output-file', '-o')
+@click.option('--limit', type=int)
+@click.pass_context
+def list_cpe_match_criteria(ctx: click.Context, output_file: Optional[str], limit: Optional[int]):
+    """
+    CPE match criteria
+    """
+    client: Client = ctx.obj
+    rows = client.iter_cpe_match_criteria()
+    write_jsonl_output(rows, output_file=output_file, limit=limit)
+
+
+@query.command('sources')
+@click.option('--output-file', '-o')
+@click.option('--limit', type=int)
+@click.pass_context
+def list_sources(ctx: click.Context, output_file: Optional[str], limit: Optional[int]):
+    """
+    Data sources
+    """
+    client: Client = ctx.obj
+    rows = client.iter_sources()
+    write_jsonl_output(rows, output_file=output_file, limit=limit)
 
 
 @main.group('download')
@@ -38,90 +105,84 @@ def download():
 
 
 @download.command('cves')
-@click.option('--output-file', '-o')
-@click.option('--limit', type=int)
-def list_cves(output_file: Optional[str], limit: Optional[int]):
+@click.option('--force', '-f', is_flag=True)
+@click.pass_context
+def download_cves(ctx: click.Context, force: bool):
     """
     CVEs
     """
-    client = Client()
-    rows = client.iter_cves()
-    write_jsonl_output(rows, output_file=output_file, limit=limit)
+    client: Client = ctx.obj
+    client.download_cves(force=force)
 
 
 @download.command('cve-changes')
-@click.option('--output-file', '-o')
-@click.option('--limit', type=int)
-def list_cve_changes(output_file: Optional[str], limit: Optional[int]):
+@click.option('--force', '-f', is_flag=True)
+@click.pass_context
+def download_cve_changes(ctx: click.Context, force: bool):
     """
     Events related to CVEs
     """
-    client = Client()
-    rows = client.iter_cve_change_history()
-    write_jsonl_output(rows, output_file=output_file, limit=limit)
+    client: Client = ctx.obj
+    client.download_cve_change_history(force=force)
 
 
 @download.command('cpes')
-@click.option('--output-file', '-o')
-@click.option('--limit', type=int)
-def list_cpes(output_file: Optional[str], limit: Optional[int]):
+@click.option('--force', '-f', is_flag=True)
+@click.pass_context
+def download_cpes(ctx: click.Context, force: bool):
     """
     CPEs
     """
-    client = Client()
-    rows = client.iter_cpes()
-    write_jsonl_output(rows, output_file=output_file, limit=limit)
+    client: Client = ctx.obj
+    client.download_cpes(force=force)
 
 
 @download.command('cpe-match-criteria')
-@click.option('--output-file', '-o')
-@click.option('--limit', type=int)
-def list_cpe_match_criteria(output_file: Optional[str], limit: Optional[int]):
+@click.option('--force', '-f', is_flag=True)
+@click.pass_context
+def download_cpe_match_criteria(ctx: click.Context, force: bool):
     """
     CPE match criteria
     """
-    client = Client()
-    rows = client.iter_cpe_match_criteria()
-    write_jsonl_output(rows, output_file=output_file, limit=limit)
+    client: Client = ctx.obj
+    client.download_cpe_match_criteria(force=force)
+
 
 
 @download.command('sources')
-@click.option('--output-file', '-o')
-@click.option('--limit', type=int)
-def list_sources(output_file: Optional[str], limit: Optional[int]):
+@click.option('--force', '-f', is_flag=True)
+@click.pass_context
+def download_sources(ctx: click.Context, force: bool):
     """
     Data sources
     """
-    client = Client()
-    rows = client.iter_sources()
-    write_jsonl_output(rows, output_file=output_file, limit=limit)
+    client: Client = ctx.obj
+    client.download_sources(force=force)
 
 
-
-@download.command('all')
-@click.option('--output-dir', '-o')
-@click.option('--limit', type=int)
+@query.command('all')
+@click.option('--force', '-f', is_flag=True)
 @click.option('--delay', type=int, default=30, help='Delay between batches of requests to avoid being rate limited')
 @click.pass_context
-def download_all(ctx: click.Context, output_dir: str, limit: Optional[int], delay: int):
+def download_all(ctx: click.Context, force: bool, delay: int):
     """
     Download all data
     """
     targets = {
-        list_cves: os.path.join(output_dir, 'cves.jsonl'),
-        list_cve_changes: os.path.join(output_dir, 'cve-changes.jsonl'),
-        list_cpes: os.path.join(output_dir, 'cpes.jsonl'),
-        list_cpe_match_criteria: os.path.join(output_dir, 'cpe-match-criteria.jsonl'),
-        list_sources: os.path.join(output_dir, 'sources.jsonl'),
+        download_cves,
+        download_cve_changes,
+        download_cpes,
+        download_cpe_match_criteria,
+        download_sources,
     }
-    for f, output_file in targets.items():
-        ctx.invoke(f, output_file=output_file, limit=limit)
+    for f in targets:
+        ctx.invoke(f, force=force)
         logger.info('Sleeping for %d seconds...', delay)
         time.sleep(delay)
 
 
 def write_json_output(data: Any, output_file: Optional[str]):
-    blob = json.dumps(data, indent=JSON_INDENT)
+    blob = json.dumps(data, indent=4)
     if output_file:
         with open(output_file, 'w') as f:
             f.write(blob)
