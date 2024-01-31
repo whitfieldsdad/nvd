@@ -32,7 +32,6 @@ _WRITE_BUFFER_SIZE = 10000
 @dataclass()
 class Client:
     workdir: str = WORKDIR
-    file_format: str = DEFAULT_FILE_FORMAT
     api_key: str = API_KEY
 
     def __post_init__(self):
@@ -40,26 +39,6 @@ class Client:
             raise ValueError("API key not provided - pass as an argument or set NIST_NVD_API_KEY environment variable")
 
         os.makedirs(self.workdir, exist_ok=True)
-        
-    @property
-    def cves_file(self) -> str:
-        return os.path.join(self.workdir, f'{CVES}.{self.file_format}')
-    
-    @property
-    def cve_changes_file(self) -> str:
-        return os.path.join(self.workdir, f'{CVE_CHANGES}.{self.file_format}')
-    
-    @property
-    def cpes_file(self) -> str:
-        return os.path.join(self.workdir, f'{CPES}.{self.file_format}')
-    
-    @property
-    def cpe_match_criteria_file(self) -> str:
-        return os.path.join(self.workdir, f'{CPE_MATCH_CRITERIA}.{self.file_format}')
-    
-    @property
-    def sources_file(self) -> str:
-        return os.path.join(self.workdir, f'{SOURCES}.{self.file_format}')
 
     @property
     def raw_cves_file(self) -> str:
