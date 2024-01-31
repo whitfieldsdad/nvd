@@ -1,3 +1,4 @@
+import collections
 from dataclasses import dataclass
 import dataclasses
 import json
@@ -12,7 +13,7 @@ from nvd.types.cvss2 import CVSS2
 from nvd.types.cvss3 import CVSS3
 from nvd.types.weakness import Weakness
 import nvd.types.parser as parser
-from typing import Any, Iterable, Iterator, Optional, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Set, Union
 import requests
 import logging
 from nvd import files, util
@@ -128,6 +129,39 @@ class Client:
 
         return pl.DataFrame(rows, infer_schema_length=10000)
     
+    def get_cve_to_cwe_mappings(self, cve_ids: Optional[Iterable[str]] = None) -> Dict[str, Set[str]]:
+        m = {}
+        for cve in self.iter_raw_cves(cve_ids=cve_ids):
+            if 'weaknesses' in cve:
+                weaknesses = parser.extract_cwe_ids_from_cve(cve)
+                if weaknesses:
+                    m[cve['id']] = weaknesses
+        return m
+
+    def get_cwe_to_cve_mappings(self, cve_ids: Optional[Iterable[str]] = None) -> Dict[str, Set[str]]:
+        inv = collections.defaultdict(set)
+        cve_ids_to_cwe_ids = self.get_cve_to_cwe_mappings(cve_ids=cve_ids)
+        for cve_id, cwe_ids in cve_ids_to_cwe_ids.items():
+            for cwe_id in cwe_ids:
+                inv[cwe_id].add(cve_id)
+        return inv
+    
+    def get_cve_to_cwe_mappings_as_polars_dataframe(self, cve_ids: Optional[Iterable[str]] = None) -> pl.DataFrame:
+        m = self.get_cve_to_cwe_mappings(cve_ids=cve_ids)
+        rows = []
+        for cve_id, cwe_ids in m.items():
+            for cwe_id in cwe_ids:
+                rows.append({
+                    'cve_id': cve_id,
+                    'cwe_id': cwe_id,
+                })
+        df = pl.DataFrame(rows)
+        return df
+    
+    def get_cve_to_cwe_mappings_as_pandas_dataframe(self, cve_ids: Optional[Iterable[str]] = None) -> pd.DataFrame:
+        df = self.get_cve_to_cwe_mappings_as_polars_dataframe(cve_ids=cve_ids)
+        return df.to_pandas()
+
     def get_cves_as_polars_dataframe(self) -> pl.DataFrame:
         return self._get_polars_dataframe(self.iter_cves(), drop_keys=['cvss2', 'cvss3'])
     

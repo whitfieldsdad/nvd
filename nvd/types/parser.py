@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Iterator, Optional, Set
 from cvss import CVSS2 as _CVSS2, CVSS3 as _CVSS3
 from nvd import util
 from nvd.types.cve import CVE
@@ -83,3 +83,15 @@ def parse_source(o: dict) -> Source:
         create_time=util.parse_datetime(o['created']),
         update_time=util.parse_datetime(o['lastModified']),
     )
+
+
+def extract_cwe_ids_from_cve(o: dict) -> Set[str]:
+    cwe_ids = set()
+    for weakness in o.get('weaknesses', []):
+        for description in weakness['description']:
+            if description['lang'] == 'en':
+                value = description['value']
+                if value.startswith('CWE-'):
+                    cwe_id = value
+                    cwe_ids.add(cwe_id)
+    return cwe_ids

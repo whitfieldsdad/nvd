@@ -7,6 +7,7 @@ import nvd.client as nvd
 import json
 import itertools
 import logging
+import polars as pl
 
 from nvd.json_encoder import JSONEncoder
 
@@ -97,6 +98,49 @@ def list_sources(ctx: click.Context, output_file: Optional[str], limit: Optional
     client: Client = ctx.obj
     rows = client.iter_sources()
     write_jsonl_output(rows, output_file=output_file, limit=limit)
+
+
+@main.group('mappings')
+def mappings_group():
+    """
+    Get 1:M mappings
+    """
+
+
+@mappings_group.command('cve-to-cwe')
+@click.option('--output-file', '-o')
+@click.option('--list/--map', 'list_output', default=False, help='Return output as a 1:1 list of mappings instead of 1:M')
+@click.pass_context
+def get_cve_to_cwe_mappings(ctx: click.Context, output_file: Optional[str], list_output: bool):
+    """
+    CVEs to CWEs
+    """
+    client: Client = ctx.obj
+    if list_output:
+        m = client.get_cve_to_cwe_mappings_as_polars_dataframe()
+        m = m.sort(by=['cve_id', 'cwe_id'])
+        write_csv_output(m, output_file=output_file)
+    else:
+        m = client.get_cve_to_cwe_mappings()
+        write_json_output(m, output_file=output_file)
+
+
+@mappings_group.command('cwe-to-cve')
+@click.option('--output-file', '-o')
+@click.option('--list/--map', 'list_output', default=False, help='Return output as a 1:1 list of mappings instead of 1:M')
+@click.pass_context
+def get_cwe_to_cve_mappings(ctx: click.Context, output_file: Optional[str], list_output: bool):
+    """
+    CWEs to CVEs
+    """
+    client: Client = ctx.obj
+    if list_output:
+        m = client.get_cve_to_cwe_mappings_as_polars_dataframe()
+        m = m[['cwe_id', 'cve_id']].sort(by=['cwe_id', 'cve_id'])
+        write_csv_output(m, output_file=output_file)
+    else:
+        m = client.get_cwe_to_cve_mappings()
+        write_json_output(m, output_file=output_file)
 
 
 @main.group('download')
@@ -202,6 +246,12 @@ def write_jsonl_output(rows: Iterator[dict], output_file: Optional[str], limit: 
     else:
         for row in rows:
             print(json.dumps(row, cls=JSONEncoder))
+
+
+def write_csv_output(df: pl.DataFrame, output_file: Optional[str]):
+    result = df.write_csv(output_file)
+    if not output_file:
+        print(result)
 
 
 if __name__ == "__main__":
