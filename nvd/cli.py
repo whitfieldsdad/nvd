@@ -8,6 +8,8 @@ import json
 import itertools
 import logging
 
+from nvd.json_encoder import JSONEncoder
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,14 +27,14 @@ def main(ctx: click.Context, workdir: str, verbose: bool):
     ctx.obj = Client(workdir=workdir)
 
 
-@main.group('query')
-def query():
+@main.group('list')
+def list_group():
     """
     Query data
     """
 
 
-@query.command('cves')
+@list_group.command('cves')
 @click.option('--output-file', '-o')
 @click.option('--limit', type=int)
 @click.pass_context
@@ -45,7 +47,7 @@ def list_cves(ctx: click.Context, output_file: Optional[str], limit: Optional[in
     write_jsonl_output(rows, output_file=output_file, limit=limit)
 
 
-@query.command('cve-changes')
+@list_group.command('cve-changes')
 @click.option('--output-file', '-o')
 @click.option('--limit', type=int)
 @click.pass_context
@@ -54,11 +56,11 @@ def list_cve_changes(ctx: click.Context, output_file: Optional[str], limit: Opti
     Events related to CVEs
     """
     client: Client = ctx.obj
-    rows = client.iter_cve_change_history()
+    rows = client.iter_cve_changes()
     write_jsonl_output(rows, output_file=output_file, limit=limit)
 
 
-@query.command('cpes')
+@list_group.command('cpes')
 @click.option('--output-file', '-o')
 @click.option('--limit', type=int)
 @click.pass_context
@@ -71,7 +73,7 @@ def list_cpes(ctx: click.Context, output_file: Optional[str], limit: Optional[in
     write_jsonl_output(rows, output_file=output_file, limit=limit)
 
 
-@query.command('cpe-match-criteria')
+@list_group.command('cpe-match-criteria')
 @click.option('--output-file', '-o')
 @click.option('--limit', type=int)
 @click.pass_context
@@ -80,11 +82,11 @@ def list_cpe_match_criteria(ctx: click.Context, output_file: Optional[str], limi
     CPE match criteria
     """
     client: Client = ctx.obj
-    rows = client.iter_cpe_match_criteria()
+    rows = client.iter_raw_cpe_match_criteria()
     write_jsonl_output(rows, output_file=output_file, limit=limit)
 
 
-@query.command('sources')
+@list_group.command('sources')
 @click.option('--output-file', '-o')
 @click.option('--limit', type=int)
 @click.pass_context
@@ -160,7 +162,7 @@ def download_sources(ctx: click.Context, force: bool):
     client.download_sources(force=force)
 
 
-@query.command('all')
+@list_group.command('all')
 @click.option('--force', '-f', is_flag=True)
 @click.option('--delay', type=int, default=30, help='Delay between batches of requests to avoid being rate limited')
 @click.pass_context
@@ -182,7 +184,7 @@ def download_all(ctx: click.Context, force: bool, delay: int):
 
 
 def write_json_output(data: Any, output_file: Optional[str]):
-    blob = json.dumps(data, indent=4)
+    blob = json.dumps(data, indent=4, cls=JSONEncoder)
     if output_file:
         with open(output_file, 'w') as f:
             f.write(blob)
@@ -195,11 +197,11 @@ def write_jsonl_output(rows: Iterator[dict], output_file: Optional[str], limit: 
     if output_file:
         with open(output_file, 'w') as f:
             for row in rows:
-                line = json.dumps(row) + '\n'
+                line = json.dumps(row, cls=JSONEncoder) + '\n'
                 f.write(line)
     else:
         for row in rows:
-            print(json.dumps(row))
+            print(json.dumps(row, cls=JSONEncoder))
 
 
 if __name__ == "__main__":

@@ -14,6 +14,10 @@ from nvd.constants import CSV, DEFAULT_FILE_FORMAT, FILE_FORMATS, JSON, JSONL, P
 logger = logging.getLogger(__name__)
 
 
+def drop_keys(d: dict, keys: Iterable[str]) -> dict:
+    return {k: v for k, v in d.items() if k not in keys}
+
+
 def snakecase_str(s: str) -> str:
     return inflection.underscore(s)
 
